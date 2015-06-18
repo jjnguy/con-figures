@@ -1,14 +1,90 @@
 ﻿
-<textarea id="config"></textarea>
-<button id="go">save</button>
+
+<ul data-bind="foreach: appSettings">
+    <li><input data-bind="value: key" /> <input data-bind="value: value" /><button data-bind="click: $parent.deleteSetting">X</button></li>
+</ul>
+<button data-bind="click: addAppSetting">add setting</button>
+
+<button data-bind="click: save">save</button>
+
 @section scripts
 {
-    <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.3.0/knockout-min.js"></script>
     <script>
-        $(function () {
-            $("#go").on("click", function () {
-                $.post('/api/applications/example_app/envs/test', $("#config").val());
-            });
-        })
+        var ko = ko;
+
+        function ConfigurationViewModel() {
+            var self = this;
+
+            self.loadedXml = ko.observable();
+
+            self.appSettings = ko.observableArray([]);
+
+            self.addAppSetting = function() {
+                self.appSettings.push(new AppSettingViewModel('*todo*', '*also todo*'));
+            };
+
+            self.save = function() {
+                saveXml('example_app', 'test');
+            };
+
+            self.deleteSetting = function(setting) {
+                self.appSettings.remove(setting);
+            };
+
+            function loadXml(appName, env) {
+                // https://developer.mozilla.org/en-US/docs/Web/Guide/Parsing_and_serializing_XML
+                var xhr = new XMLHttpRequest();
+                xhr.onload = function () {
+                    self.appSettings([]);
+                    self.loadedXml(xhr.responseXML);
+
+                    // #root/config/appsettings
+                    var appSettingNodes = xhr.responseXML.children[0].children[0].children;
+                    for (var i = 0; i < appSettingNodes.length; i++) {
+                        var node = appSettingNodes[i];
+                        self.appSettings.push(new AppSettingViewModel(node.attributes['key'].value, node.attributes['value'].value));
+                    }
+                }
+                xhr.onerror = function () {
+                    console.log('Error while getting XML.');
+                }
+                xhr.open('GET', '/api/applications/' + appName + '/envs/' + env);
+                xhr.responseType = 'document';
+                xhr.send();
+            }
+
+            function saveXml(appName, env) {
+                var config = document.implementation.createDocument(null, 'configuration', null);
+                var appSettings = document.createElementNS(undefined, 'appSettings');
+                appSettings.removeAttribute('xmlns');
+                appSettings.namespaceURI = undefined;
+                var rawAppSettings = self.appSettings();
+                for (var i = 0; i < rawAppSettings.length; i++) {
+                    var setting = document.createElement('add');
+                    setting.setAttribute('key', rawAppSettings[i].key());
+                    setting.setAttribute('value', rawAppSettings[i].value());
+                    appSettings.appendChild(setting);
+                }
+                config.children[0].appendChild(appSettings);
+
+                // http://youmightnotneedjquery.com/
+                var request = new XMLHttpRequest();
+                request.open('POST', '/api/applications/' + appName + '/envs/' + env, true);
+                request.setRequestHeader('Content-Type', 'text/plain; charset=UTF-8');
+                request.send(new XMLSerializer().serializeToString(config));
+            }
+
+            loadXml('example_app', 'test');
+        }
+
+        function AppSettingViewModel(key, value) {
+            var self = this;
+
+            self.key = ko.observable(key);
+            self.value = ko.observable(value);
+        }
+
+        ko.applyBindings(new ConfigurationViewModel());
     </script>
 }

@@ -4,5 +4,11 @@
 }
 
 <p>
-    Current Example app setting value is: @ConfigurationManager.AppSettings["Example"]
+    Current Example app setting values are:
+    <ul>
+        @foreach (var setting in ConfigurationManager.AppSettings.AllKeys)
+        {
+            <li><label>@setting</label> <span>@ConfigurationManager.AppSettings[setting]</span></li>
+        }
+    </ul>
 </p>

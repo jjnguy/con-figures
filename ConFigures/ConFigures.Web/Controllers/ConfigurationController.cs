@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Reflection.Emit;
 using System.Web.Http;
 using System.Web.Http.Results;
@@ -17,6 +18,7 @@ namespace ConFigures.Controllers
         public HttpResponseMessage Get(string appName, string envName)
         {
             var content = new StringContent(ConfigAccess.GetConfig(appName, envName));
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/xml");
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = content
