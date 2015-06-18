@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,18 +14,16 @@ namespace ConFigures
 {
     public static class Figure
     {
-        public static void Start(string envName)
+        public static void Start(string serverUrl, string appName, string envName)
         {
-            var appSettings = new XElement("appSettings");
-            AddNode(appSettings, "add", Tuple.Create("key", "Example"), Tuple.Create("value", envName));
-            var config = new XElement("configuration");
-            config.Add(appSettings);
-            var doc = new XDocument();
-            doc.Add(config);
+            var client = new HttpClient();
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
+            var result = client.GetAsync(serverUrl + "/api/applications/" + appName + "/envs/" + envName).Result;
+            var configFile = result.Content.ReadAsStringAsync().Result;
 
             var fileName = Path.GetTempFileName();
-
-            doc.Save(fileName);
+            File.WriteAllText(fileName, configFile);
 
             AppConfig.Change(fileName);
         }
