@@ -27,16 +27,6 @@ namespace ConFigures
 
             AppConfig.Change(fileName);
         }
-
-        private static void AddNode(XElement toAddTo, string nodeName, params Tuple<string, string>[] attrs)
-        {
-            var newNode = new XElement(nodeName);
-            foreach (var tuple in attrs)
-            {
-                newNode.SetAttributeValue(tuple.Item1, tuple.Item2);
-            }
-            toAddTo.Add(newNode);
-        }
     }
 
     // the following code was ripped verbatim from: http://stackoverflow.com/a/6151688/2598

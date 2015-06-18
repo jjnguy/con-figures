@@ -126,8 +126,8 @@
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ConFigures.Client\ConFigures.csproj">
-      <Project>{AA639BB4-9299-4404-B6E6-331575EC5B10}</Project>
+    <ProjectReference Include="..\ConFigures\ConFigures.csproj">
+      <Project>{aa639bb4-9299-4404-b6e6-331575ec5b10}</Project>
       <Name>ConFigures</Name>
     </ProjectReference>
   </ItemGroup>
