@@ -7,8 +7,8 @@
     <ProjectGuid>{AA639BB4-9299-4404-B6E6-331575EC5B10}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ConFigures.Client</RootNamespace>
-    <AssemblyName>ConFigures.Client</AssemblyName>
+    <RootNamespace>ConFigures</RootNamespace>
+    <AssemblyName>ConFigures</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
