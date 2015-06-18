@@ -8,29 +8,21 @@ namespace ConFigures.Client
 {
     public class ConfigurationClient
     {
-        private AppSettings _appSettings;
+        private IKeyValuePairCollection _appSettings;
+        private IKeyValuePairCollection _connectionStrings;
 
         public ConfigurationClient()
         {
-            _appSettings = new AppSettings();
         }
 
-        public AppSettings AppSettings
+        public IKeyValuePairCollection AppSettings
         {
             get { return _appSettings; }
         }
     }
 
-    public class AppSettings
+    public interface IKeyValuePairCollection
     {
-        public string Get(string key)
-        {
-
-        }
-    }
-
-    public class ConnectionStrings
-    {
-        
+        string Get(string key);
     }
 }
