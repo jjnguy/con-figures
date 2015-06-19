@@ -1,81 +1,110 @@
 ﻿
-
-<ul data-bind="foreach: appSettings">
-    <li><input data-bind="value: key" /> <input data-bind="value: value" /><button data-bind="click: $parent.deleteSetting">X</button></li>
-</ul>
+<input data-bind="value: appName" />
+<input data-bind="value: envName" />
+<button data-bind="click: loadConfig">load</button>
+<div data-bind="if: config">
+    <ul data-bind="foreach: config().appSettings">
+        <li><input data-bind="value: key" /> <input data-bind="value: value" /><button data-bind="click: $parent.deleteSetting">X</button></li>
+    </ul>
+</div>
 <button data-bind="click: addAppSetting">add setting</button>
 
-<button data-bind="click: save">save</button>
+<button data-bind="click: saveConfig">save</button>
 
 @section scripts
 {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.3.0/knockout-min.js"></script>
     <script>
-        var ko = ko;
-
-        function ConfigurationViewModel() {
+        function ApiAccess() {
             var self = this;
 
-            self.loadedXml = ko.observable();
+            self.get = function (url, success, error) {
+                makeRequest('GET', url, undefined, success, error);
+            }
+
+            self.post = function (url, data, success, error) {
+                makeRequest('POST', url, data, success, error);
+            }
+
+            function makeRequest(method, url, data, success, error) {
+                //http://youmightnotneedjquery.com/#request
+                var request = new XMLHttpRequest();
+                request.open(method, url, true);
+
+                request.onload = function () {
+                    if (this.status >= 200 && this.status < 400) {
+                        success(this.response);
+                    } else {
+                        // We reached our target server, but it returned an error
+                        error(this.response);
+                    }
+                };
+
+                request.onerror = function () {
+                    // There was a connection error of some sort
+                    error(this.response);
+                };
+
+                request.send(data);
+            }
+        }
+    </script>
+    <script>
+        var ko = ko;
+        var $ = new ApiAccess();
+
+        function ConfigManagerViewModel() {
+            var self = this;
+
+            self.config = ko.observable();
+
+            self.appName = ko.observable('example_app');
+            self.envName = ko.observable('test');
+
+            self.apiUrl = ko.computed(function () {
+                return '/api/applications/' + self.appName() + '/envs/' + self.envName();
+            });
+
+            self.addAppSetting = function () {
+                if (self.config()) {
+                    self.config().appSettings.push(new AppSettingViewModel('*todo*', '*also todo*'));
+                }
+            };
+
+            self.loadConfig = function () {
+                $.get(self.apiUrl(), function (data) {
+                    self.config(new ConfigurationViewModel(data));
+                });
+            };
+
+            self.saveConfig = function () {
+                $.post(self.apiUrl(), self.config().toRawConfig(), function (data) {
+                    console.log(data);
+                });
+            };
+        }
+
+        function ConfigurationViewModel(rawConfig) {
+            var self = this;
 
             self.appSettings = ko.observableArray([]);
 
-            self.addAppSetting = function() {
-                self.appSettings.push(new AppSettingViewModel('*todo*', '*also todo*'));
-            };
-
-            self.save = function() {
-                saveXml('example_app', 'test');
-            };
-
-            self.deleteSetting = function(setting) {
+            self.deleteSetting = function (setting) {
                 self.appSettings.remove(setting);
             };
 
-            function loadXml(appName, env) {
-                // https://developer.mozilla.org/en-US/docs/Web/Guide/Parsing_and_serializing_XML
-                var xhr = new XMLHttpRequest();
-                xhr.onload = function () {
-                    self.appSettings([]);
-                    self.loadedXml(xhr.responseXML);
-
-                    // #root/config/appsettings
-                    var appSettingNodes = xhr.responseXML.children[0].children[0].children;
-                    for (var i = 0; i < appSettingNodes.length; i++) {
-                        var node = appSettingNodes[i];
-                        self.appSettings.push(new AppSettingViewModel(node.attributes['key'].value, node.attributes['value'].value));
-                    }
-                }
-                xhr.onerror = function () {
-                    console.log('Error while getting XML.');
-                }
-                xhr.open('GET', '/api/applications/' + appName + '/envs/' + env);
-                xhr.responseType = 'document';
-                xhr.send();
-            }
-
-            function saveXml(appName, env) {
-                var config = document.implementation.createDocument(null, 'configuration', null);
-                var appSettings = document.createElementNS(undefined, 'appSettings');
-                appSettings.removeAttribute('xmlns');
-                appSettings.namespaceURI = undefined;
+            self.toRawConfig = function () {
+                var result = {
+                    appSettings: [],
+                    connectionStrings: []
+                };
                 var rawAppSettings = self.appSettings();
-                for (var i = 0; i < rawAppSettings.length; i++) {
-                    var setting = document.createElement('add');
-                    setting.setAttribute('key', rawAppSettings[i].key());
-                    setting.setAttribute('value', rawAppSettings[i].value());
-                    appSettings.appendChild(setting);
-                }
-                config.children[0].appendChild(appSettings);
+                rawAppSettings.forEach(function (setting) {
+                    result.appSettings.push({ key: setting.key(), value: setting.value() });
+                });
 
-                // http://youmightnotneedjquery.com/
-                var request = new XMLHttpRequest();
-                request.open('POST', '/api/applications/' + appName + '/envs/' + env, true);
-                request.setRequestHeader('Content-Type', 'text/plain; charset=UTF-8');
-                request.send(new XMLSerializer().serializeToString(config));
-            }
-
-            loadXml('example_app', 'test');
+                return result;
+            };
         }
 
         function AppSettingViewModel(key, value) {
@@ -85,6 +114,6 @@
             self.value = ko.observable(value);
         }
 
-        ko.applyBindings(new ConfigurationViewModel());
+        ko.applyBindings(new ConfigManagerViewModel());
     </script>
 }

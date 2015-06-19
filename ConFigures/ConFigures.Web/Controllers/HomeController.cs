@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+﻿using System.Web.Mvc;
 
-namespace ConFigures.Controllers
+namespace ConFigures.Web.Controllers
 {
     public class HomeController : Controller
     {
+        [HttpGet]
+        [Route("Home/Index")]
+        [Route("Index")]
+        [Route("")]
         public ActionResult Index()
         {
             ViewBag.Title = "Home Page";

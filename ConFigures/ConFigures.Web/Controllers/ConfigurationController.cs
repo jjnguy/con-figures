@@ -1,34 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Reflection.Emit;
+﻿using System.IO;
 using System.Web.Http;
-using System.Web.Http.Results;
-using System.Xml.Linq;
+using ConFigures.Web.Models;
+using Newtonsoft.Json;
 
-namespace ConFigures.Controllers
+namespace ConFigures.Web.Controllers
 {
     public class ConfigurationController : ApiController
     {
         [Route("api/applications/{appName}/envs/{envName}")]
-        public HttpResponseMessage Get(string appName, string envName)
+        public Configs Get(string appName, string envName)
         {
-            var content = new StringContent(ConfigAccess.GetConfig(appName, envName));
-            content.Headers.ContentType = new MediaTypeHeaderValue("application/xml");
-            return new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = content
-            };
+            return JsonConvert.DeserializeObject<Configs>(ConfigAccess.GetConfig(appName, envName));
         }
 
         [Route("api/applications/{appName}/envs/{envName}")]
-        public void Post(string appName, string envName)
+        public void Post(string appName, string envName, Configs configs)
         {
-            ConfigAccess.SaveConfig(appName, envName, Request.Content.ReadAsStringAsync().Result);
+            ConfigAccess.SaveConfig(appName, envName, JsonConvert.SerializeObject(configs));
         }
     }
 
@@ -36,11 +24,10 @@ namespace ConFigures.Controllers
     {
         private static readonly string ConfigFolder = System.Web.Hosting.HostingEnvironment.MapPath("~/Configs");
 
-
         public static string GetConfig(string appName, string envName)
         {
             var filePath = BuildFilePath(appName, envName);
-            if (!File.Exists(filePath)) return "<?xml version=\"1.0\" encoding=\"utf-8\"?><configuration></configuration>";
+            if (!File.Exists(filePath)) return JsonConvert.SerializeObject(new Configs());
             return File.ReadAllText(filePath);
         }
 
