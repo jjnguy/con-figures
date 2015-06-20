@@ -8,7 +8,10 @@ using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
+using System.Xml.Serialization;
+using Newtonsoft.Json;
 
 namespace ConFigures
 {
@@ -18,14 +21,45 @@ namespace ConFigures
         {
             var client = new HttpClient();
             client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             var result = client.GetAsync(serverUrl + "/api/applications/" + appName + "/envs/" + envName).Result;
-            var configFile = result.Content.ReadAsStringAsync().Result;
+            var configFile = JsonConvert.DeserializeObject<Configs>(result.Content.ReadAsStringAsync().Result);
+
+            var xDoc = ConfigsToConfigFile(configFile);
 
             var fileName = Path.GetTempFileName();
-            File.WriteAllText(fileName, configFile);
+            File.WriteAllText(fileName, xDoc.ToString());
 
             AppConfig.Change(fileName);
+        }
+
+        private static XDocument ConfigsToConfigFile(Configs conf)
+        {
+            var appSettings = new XElement("appSettings");
+            foreach (var appSetting in conf.AppSettings)
+            {
+                // If the actual configuration file already has a key, we will skip it
+                if (ConfigurationManager.AppSettings.AllKeys.Contains(appSetting.Key)) continue;
+                var add = new XElement("add");
+                add.SetAttributeValue("key", appSetting.Key);
+                add.SetAttributeValue("value", appSetting.Value);
+                appSettings.Add(add);
+            }
+
+            // inject original app settings
+            foreach (var key in ConfigurationManager.AppSettings.AllKeys)
+            {
+                var add = new XElement("add");
+                add.SetAttributeValue("key", key);
+                add.SetAttributeValue("value", ConfigurationManager.AppSettings[key]);
+                appSettings.Add(add);
+            }
+
+            var configuration = new XElement("configuration");
+            configuration.Add(appSettings);
+            var doc = new XDocument();
+            doc.Add(configuration);
+            return doc;
         }
     }
 

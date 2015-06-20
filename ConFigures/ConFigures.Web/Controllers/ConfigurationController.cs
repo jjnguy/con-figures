@@ -1,6 +1,5 @@
 ﻿using System.IO;
 using System.Web.Http;
-using ConFigures.Web.Models;
 using Newtonsoft.Json;
 
 namespace ConFigures.Web.Controllers

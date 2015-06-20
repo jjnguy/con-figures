@@ -18,11 +18,11 @@
         function ApiAccess() {
             var self = this;
 
-            self.get = function (url, success, error) {
+            self.get = function(url, success, error) {
                 makeRequest('GET', url, undefined, success, error);
             }
 
-            self.post = function (url, data, success, error) {
+            self.post = function(url, data, success, error) {
                 makeRequest('POST', url, data, success, error);
             }
 
@@ -33,21 +33,22 @@
 
                 request.setRequestHeader('Content-Type', 'application/json');
 
-                request.onload = function () {
+                request.onload = function() {
                     if (this.status >= 200 && this.status < 400) {
-                        success(this.response);
+                        success(JSON.parse(this.response || '{}'));
                     } else {
                         // We reached our target server, but it returned an error
                         error(this.response);
                     }
                 };
 
-                request.onerror = function () {
+                request.onerror = function() {
                     // There was a connection error of some sort
                     error(this.response);
                 };
 
-                request.send(JSON.stringify(data));
+                var stringData = JSON.stringify(data);
+                request.send(stringData);
             }
         }
     </script>
@@ -63,24 +64,24 @@
             self.appName = ko.observable('example_app');
             self.envName = ko.observable('test');
 
-            self.apiUrl = ko.computed(function () {
+            self.apiUrl = ko.computed(function() {
                 return '/api/applications/' + self.appName() + '/envs/' + self.envName();
             });
 
-            self.addAppSetting = function () {
+            self.addAppSetting = function() {
                 if (self.config()) {
                     self.config().appSettings.push(new AppSettingViewModel('*todo*', '*also todo*'));
                 }
             };
 
-            self.loadConfig = function () {
-                $.get(self.apiUrl(), function (data) {
+            self.loadConfig = function() {
+                $.get(self.apiUrl(), function(data) {
                     self.config(new ConfigurationViewModel(data));
                 });
             };
 
-            self.saveConfig = function () {
-                $.post(self.apiUrl(), self.config().toRawConfig(), function (data) {
+            self.saveConfig = function() {
+                $.post(self.apiUrl(), self.config().toRawConfig(), function(data) {
                     console.log(data);
                 });
             };
@@ -91,22 +92,26 @@
 
             self.appSettings = ko.observableArray([]);
 
-            self.deleteSetting = function (setting) {
+            self.deleteSetting = function(setting) {
                 self.appSettings.remove(setting);
             };
 
-            self.toRawConfig = function () {
+            self.toRawConfig = function() {
                 var result = {
-                    AppSettings: [],
-                    ConnectionStrings: []
+                    AppSettings: {},
+                    ConnectionStrings: {}
                 };
                 var rawAppSettings = self.appSettings();
-                rawAppSettings.forEach(function (setting) {
-                    result.AppSettings.push({ key: setting.key(), value: setting.value() });
+                rawAppSettings.forEach(function(setting) {
+                    result.AppSettings[setting.key()] = setting.value();
                 });
 
                 return result;
             };
+
+            for (var key in rawConfig.AppSettings) {
+                self.appSettings.push(new AppSettingViewModel(key, rawConfig.AppSettings[key]));
+            }
         }
 
         function AppSettingViewModel(key, value) {
