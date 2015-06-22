@@ -3,9 +3,11 @@
 <input data-bind="value: envName" />
 <button data-bind="click: loadConfig">load</button>
 <div data-bind="if: config">
-    <ul data-bind="foreach: config().appSettings">
-        <li><input data-bind="value: key" /> <input data-bind="value: value" /><button data-bind="click: $parent.deleteSetting">X</button></li>
-    </ul>
+    <div data-bind="with: config">
+        <ul data-bind="foreach: appSettings">
+            <li><input data-bind="value: key" /> <input data-bind="value: value" /><button data-bind="click: $parent.deleteSetting">X</button></li>
+        </ul>
+    </div>
 </div>
 <button data-bind="click: addAppSetting">add setting</button>
 
@@ -18,11 +20,11 @@
         function ApiAccess() {
             var self = this;
 
-            self.get = function(url, success, error) {
+            self.get = function (url, success, error) {
                 makeRequest('GET', url, undefined, success, error);
             }
 
-            self.post = function(url, data, success, error) {
+            self.post = function (url, data, success, error) {
                 makeRequest('POST', url, data, success, error);
             }
 
@@ -33,7 +35,7 @@
 
                 request.setRequestHeader('Content-Type', 'application/json');
 
-                request.onload = function() {
+                request.onload = function () {
                     if (this.status >= 200 && this.status < 400) {
                         success(JSON.parse(this.response || '{}'));
                     } else {
@@ -42,7 +44,7 @@
                     }
                 };
 
-                request.onerror = function() {
+                request.onerror = function () {
                     // There was a connection error of some sort
                     error(this.response);
                 };
@@ -64,24 +66,24 @@
             self.appName = ko.observable('example_app');
             self.envName = ko.observable('test');
 
-            self.apiUrl = ko.computed(function() {
+            self.apiUrl = ko.computed(function () {
                 return '/api/applications/' + self.appName() + '/envs/' + self.envName();
             });
 
-            self.addAppSetting = function() {
+            self.addAppSetting = function () {
                 if (self.config()) {
                     self.config().appSettings.push(new AppSettingViewModel('*todo*', '*also todo*'));
                 }
             };
 
-            self.loadConfig = function() {
-                $.get(self.apiUrl(), function(data) {
+            self.loadConfig = function () {
+                $.get(self.apiUrl(), function (data) {
                     self.config(new ConfigurationViewModel(data));
                 });
             };
 
-            self.saveConfig = function() {
-                $.post(self.apiUrl(), self.config().toRawConfig(), function(data) {
+            self.saveConfig = function () {
+                $.post(self.apiUrl(), self.config().toRawConfig(), function (data) {
                     console.log(data);
                 });
             };
@@ -92,17 +94,18 @@
 
             self.appSettings = ko.observableArray([]);
 
-            self.deleteSetting = function(setting) {
+            self.deleteSetting = function (setting) {
                 self.appSettings.remove(setting);
             };
 
-            self.toRawConfig = function() {
+            self.toRawConfig = function () {
                 var result = {
                     AppSettings: {},
                     ConnectionStrings: {}
                 };
                 var rawAppSettings = self.appSettings();
-                rawAppSettings.forEach(function(setting) {
+                rawAppSettings.forEach(function (setting) {
+                    if (setting.key() == 'Env') throw 'Cannot set "Env" on the config server. Environment must be set in app.config or web.config.';
                     result.AppSettings[setting.key()] = setting.value();
                 });
 
