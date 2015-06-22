@@ -16,7 +16,7 @@ namespace ExampleWebApp
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
 
-            Figure.Start("http://localhost:6895", "example_app", "test");
+            Figure.Start("http://localhost:6895", "example_app");
         }
     }
 }

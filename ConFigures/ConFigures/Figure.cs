@@ -6,23 +6,21 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
 using System.Xml.Linq;
-using System.Xml.Serialization;
+using Environment;
 using Newtonsoft.Json;
 
 namespace ConFigures
 {
     public static class Figure
     {
-        public static void Start(string serverUrl, string appName, string envName)
+        public static void Start(string serverUrl, string appName)
         {
+            var env = Env.Current();
             var client = new HttpClient();
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            var result = client.GetAsync(serverUrl + "/api/applications/" + appName + "/envs/" + envName).Result;
+            var result = client.GetAsync(serverUrl + "/api/applications/" + appName + "/envs/" + env.Name.ToLower()).Result;
             var configFile = JsonConvert.DeserializeObject<Configs>(result.Content.ReadAsStringAsync().Result);
 
             var xDoc = ConfigsToConfigFile(configFile);
@@ -38,6 +36,12 @@ namespace ConFigures
             var appSettings = new XElement("appSettings");
             foreach (var appSetting in conf.AppSettings)
             {
+                if (appSetting.Key == "Env")
+                {
+                    throw new ConfigurationErrorsException(
+                        "Cannot define an 'Env' in server configuration. The environment can only be configured within the AppSettings portion of the web or app config file.");
+                }
+
                 // If the actual configuration file already has a key, we will skip it
                 if (ConfigurationManager.AppSettings.AllKeys.Contains(appSetting.Key)) continue;
                 var add = new XElement("add");

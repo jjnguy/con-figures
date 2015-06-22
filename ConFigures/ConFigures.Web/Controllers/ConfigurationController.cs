@@ -42,7 +42,7 @@ namespace ConFigures.Web.Controllers
 
         private static string BuildFilePath(string appName, string envName)
         {
-            return ConfigFolder + "/" + appName + "/" + envName + ".config";
+            return ConfigFolder + "/" + appName.Trim().ToLower() + "/" + envName.Trim().ToLower() + ".config";
         }
     }
 }
