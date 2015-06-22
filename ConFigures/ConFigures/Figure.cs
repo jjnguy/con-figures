@@ -21,7 +21,8 @@ namespace ConFigures
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             var result = client.GetAsync(serverUrl + "/api/applications/" + appName + "/envs/" + env.Name.ToLower()).Result;
-            var configFile = JsonConvert.DeserializeObject<Configs>(result.Content.ReadAsStringAsync().Result);
+            var resultContent = result.Content.ReadAsStringAsync().Result;
+            var configFile = JsonConvert.DeserializeObject<Configs>(resultContent);
 
             var xDoc = ConfigsToConfigFile(configFile);
 

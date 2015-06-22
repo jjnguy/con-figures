@@ -1,6 +1,9 @@
-﻿
-<input data-bind="value: appName" />
-<input data-bind="value: envName" />
+﻿@using Environment
+@using Newtonsoft.Json
+
+<select data-bind="value: appName, options: allApps"></select>
+<input placeholder="new app name" data-bind="value: newAppName"/><button data-bind="click: addNewApp">add app</button>
+<select data-bind="value: envName, options: allEnvs"></select>
 <button data-bind="click: loadConfig">load</button>
 <div data-bind="if: config">
     <div data-bind="with: config">
@@ -20,11 +23,11 @@
         function ApiAccess() {
             var self = this;
 
-            self.get = function (url, success, error) {
+            self.get = function(url, success, error) {
                 makeRequest('GET', url, undefined, success, error);
             }
 
-            self.post = function (url, data, success, error) {
+            self.post = function(url, data, success, error) {
                 makeRequest('POST', url, data, success, error);
             }
 
@@ -35,7 +38,7 @@
 
                 request.setRequestHeader('Content-Type', 'application/json');
 
-                request.onload = function () {
+                request.onload = function() {
                     if (this.status >= 200 && this.status < 400) {
                         success(JSON.parse(this.response || '{}'));
                     } else {
@@ -44,7 +47,7 @@
                     }
                 };
 
-                request.onerror = function () {
+                request.onerror = function() {
                     // There was a connection error of some sort
                     error(this.response);
                 };
@@ -58,35 +61,50 @@
         var ko = ko;
         var $ = new ApiAccess();
 
-        function ConfigManagerViewModel() {
+        function ConfigManagerViewModel(allEnvs) {
             var self = this;
 
             self.config = ko.observable();
 
+            self.newAppName = ko.observable();
+            self.allApps = ko.observableArray([]);
+
+            self.addNewApp = function() {
+                $.post('/api/applications', { AppName : self.newAppName() }, function() {
+                    self.allApps.push(self.newAppName());
+                    self.newAppName(undefined);
+                });
+            };
+
             self.appName = ko.observable('example_app');
+            self.allEnvs = Object.keys(allEnvs);
             self.envName = ko.observable('test');
 
-            self.apiUrl = ko.computed(function () {
+            self.apiUrl = ko.computed(function() {
                 return '/api/applications/' + self.appName() + '/envs/' + self.envName();
             });
 
-            self.addAppSetting = function () {
+            self.addAppSetting = function() {
                 if (self.config()) {
                     self.config().appSettings.push(new AppSettingViewModel('*todo*', '*also todo*'));
                 }
             };
 
-            self.loadConfig = function () {
-                $.get(self.apiUrl(), function (data) {
+            self.loadConfig = function() {
+                $.get(self.apiUrl(), function(data) {
                     self.config(new ConfigurationViewModel(data));
                 });
             };
 
-            self.saveConfig = function () {
-                $.post(self.apiUrl(), self.config().toRawConfig(), function (data) {
+            self.saveConfig = function() {
+                $.post(self.apiUrl(), self.config().toRawConfig(), function(data) {
                     console.log(data);
                 });
             };
+
+            $.get('/api/applications', function(data) {
+                self.allApps(data);
+            });
         }
 
         function ConfigurationViewModel(rawConfig) {
@@ -94,17 +112,17 @@
 
             self.appSettings = ko.observableArray([]);
 
-            self.deleteSetting = function (setting) {
+            self.deleteSetting = function(setting) {
                 self.appSettings.remove(setting);
             };
 
-            self.toRawConfig = function () {
+            self.toRawConfig = function() {
                 var result = {
                     AppSettings: {},
                     ConnectionStrings: {}
                 };
                 var rawAppSettings = self.appSettings();
-                rawAppSettings.forEach(function (setting) {
+                rawAppSettings.forEach(function(setting) {
                     if (setting.key() == 'Env') throw 'Cannot set "Env" on the config server. Environment must be set in app.config or web.config.';
                     result.AppSettings[setting.key()] = setting.value();
                 });
@@ -124,6 +142,6 @@
             self.value = ko.observable(value);
         }
 
-        ko.applyBindings(new ConfigManagerViewModel());
+        ko.applyBindings(new ConfigManagerViewModel(@Html.Raw(JsonConvert.SerializeObject(Env.All))));
     </script>
 }
